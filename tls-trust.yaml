@@ -1,0 +1,42 @@
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretTemplate
+metadata:
+  name: tap-ca-cert
+  namespace: cert-manager
+spec:
+  inputResources:
+    - name: tap-ingress-selfsigned-root-ca
+      ref:
+        apiVersion: v1
+        kind: Secret
+        name: tap-ingress-selfsigned-root-ca
+  template:
+    data:
+      ca.crt: $(.tap-ingress-selfsigned-root-ca.data.tls\.crt)
+    stringData:
+      type: ca-certificates
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretExport
+metadata:
+  name: tap-ca-cert
+  namespace: cert-manager
+spec:
+  toNamespace: "*"
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretImport
+metadata:
+  name: tap-ca-cert
+  namespace: workloads
+spec:
+  fromNamespace: cert-manager
+---
+apiVersion: secretgen.carvel.dev/v1alpha1
+kind: SecretImport
+metadata:
+  name: tap-ca-cert
+  namespace: tap-install
+spec:
+  fromNamespace: cert-manager

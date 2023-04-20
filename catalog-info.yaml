@@ -1,0 +1,27 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: fitness-store
+  description: ACME Fitness Online Store
+  annotations:
+    'backstage.io/techdocs-ref': dir:.
+spec:
+  owner: default-team
+  domain: cloud-apps
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: acme-fitness-store
+  description: "Catalog for the 'ACME Fitness Store' application"
+spec:
+  targets:
+    - ./apps/acme-cart/catalog/catalog-info.yaml
+    - ./apps/acme-catalog/catalog/catalog-info.yaml
+    - ./apps/acme-gateway/catalog/catalog-info.yaml
+    - ./apps/acme-identity/catalog/catalog-info.yaml
+    - ./apps/acme-order/catalog/catalog-info.yaml
+    - ./apps/acme-payment/catalog/catalog-info.yaml
+    - ./apps/acme-shopping/catalog/catalog-info.yaml
+    - ./apps/acme-cart-redis/catalog/catalog-info.yaml

@@ -1,0 +1,7 @@
+site_name: 'ACME Fitness Store'
+
+nav:
+  - About: index.md
+
+plugins:
+  - techdocs-core

@@ -1,0 +1,7 @@
+site_name: 'ACME Fitness Store - Identity Service'
+
+nav:
+  - About: index.md
+
+plugins:
+  - techdocs-core

@@ -1,0 +1,269 @@
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGateway
+metadata:
+  name: acme-fitness-gateway
+  namespace: workloads
+spec:
+  tls:
+  - secretName: null
+    hosts:
+    - https://acme-fitness.tap-lab.terasky.demo
+  service:
+    type: ClusterIP
+  api:
+    title: ACME Fitness API Gateway
+    description: The entrypoint for all things ACME Fitness
+    version: 1.0.0
+  env:
+  - name: spring.cloud.gateway.httpclient.connect-timeout
+    value: "90"
+  sso:
+    secret: acme-fitness-client-registration
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayRouteConfig
+metadata:
+  name: cart-route-config
+  namespace: workloads
+spec:
+  routes:
+  - predicates:
+    - Path=/cart/item/add/{userId}
+    - Method=POST
+    filters:
+    - StripPrefix=0
+    tags:
+    - cart
+    ssoEnabled: true
+    tokenRelay: true
+  - predicates:
+    - Path=/cart/item/modify/{userId}
+    - Method=POST
+    filters:
+    - StripPrefix=0
+    tags:
+    - cart
+    ssoEnabled: true
+    tokenRelay: true
+  - predicates:
+    - Path=/cart/items/{userId}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - cart
+    ssoEnabled: true
+    tokenRelay: true
+  - predicates:
+    - Path=/cart/clear/{userId}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - cart
+    ssoEnabled: true
+    tokenRelay: true
+  - predicates:
+    - Path=/cart/total/{userId}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - cart
+    ssoEnabled: true
+    tokenRelay: true
+  service:
+    name: acme-cart
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayMapping
+metadata:
+  name: cart-route-mapping
+  namespace: workloads
+spec:
+  gatewayRef:
+    name: acme-fitness-gateway
+  routeConfigRef:
+    name: cart-route-config
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayRouteConfig
+metadata:
+  name: catalog-route-config
+  namespace: workloads
+spec:
+  routes:
+  - predicates:
+    - Path=/products
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    - RateLimit=2,5s
+    tags:
+    - catalog
+    uri: http://acme-catalog
+  - predicates:
+    - Path=/products/{id}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - catalog
+    uri: http://acme-catalog
+  - predicates:
+    - Path=/catalogliveness
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    - SetPath=/actuator/health/liveness
+    tags:
+    - catalog
+    uri: http://acme-catalog
+  - predicates:
+    - Path=/static/images/{id}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - catalog
+    uri: http://acme-catalog
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayMapping
+metadata:
+  name: catalog-route-mapping
+  namespace: workloads
+spec:
+  gatewayRef:
+    name: acme-fitness-gateway
+  routeConfigRef:
+    name: catalog-route-config
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayRouteConfig
+metadata:
+  name: frontend-route-config
+  namespace: workloads
+spec:
+  routes:
+  - predicates:
+    - Path=/**
+    - Method=GET
+    order: 1000
+    filters:
+    - StripPrefix=0
+    tags:
+    - frontend
+  service:
+    name: acme-shopping
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayMapping
+metadata:
+  name: frontend-route-mapping
+  namespace: workloads
+spec:
+  gatewayRef:
+    name: acme-fitness-gateway
+  routeConfigRef:
+    name: frontend-route-config
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayRouteConfig
+metadata:
+  name: identity-route-config
+  namespace: workloads
+spec:
+  routes:
+  - order: 0
+    ssoEnabled: true
+    predicates:
+    - Path=/acme-login
+    - Method=GET
+    filters:
+    - RedirectTo=302, /
+    tags:
+    - sso
+    uri: http://acme-identity
+  - tokenRelay: true
+    ssoEnabled: true
+    predicates:
+    - Path=/userinfo
+    - Method=GET
+    filters:
+    - RedirectTo=302, /whoami
+    - SetResponseHeader=Cache-Control, no-store
+    tags:
+    - users
+    uri: http://acme-identity
+  - uri: no://op
+    predicates:
+    - Path=/verify-token
+    - Method=POST
+    ssoEnabled: true
+    tags:
+    - users
+  - tokenRelay: true
+    ssoEnabled: true
+    predicates:
+    - Path=/whoami
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - users
+    uri: http://acme-identity
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayMapping
+metadata:
+  name: identity-route-mapping
+  namespace: workloads
+spec:
+  gatewayRef:
+    name: acme-fitness-gateway
+  routeConfigRef:
+    name: identity-route-config
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayRouteConfig
+metadata:
+  name: order-route-config
+  namespace: workloads
+spec:
+  routes:
+  - tokenRelay: true
+    ssoEnabled: true
+    title: Create an order.
+    description: Creates an order for the user.
+    predicates:
+    - Path=/order/add/{userId}
+    - Method=POST
+    filters:
+    - StripPrefix=0
+    tags:
+    - order
+  - tokenRelay: true
+    ssoEnabled: true
+    title: Retrieve User's Orders.
+    description: Lookup all orders for the given user
+    predicates:
+    - Path=/order/{userId}
+    - Method=GET
+    filters:
+    - StripPrefix=0
+    tags:
+    - order
+  service:
+    name: acme-order
+---
+apiVersion: tanzu.vmware.com/v1
+kind: SpringCloudGatewayMapping
+metadata:
+  name: order-route-mapping
+  namespace: workloads
+spec:
+  gatewayRef:
+    name: acme-fitness-gateway
+  routeConfigRef:
+    name: order-route-config

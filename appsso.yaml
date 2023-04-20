@@ -1,0 +1,134 @@
+apiVersion: sso.apps.tanzu.vmware.com/v1alpha1
+kind: AuthServer
+metadata:
+  name: appsso-acme-fitness
+  namespace: workloads
+  labels:
+    name: appsso-acme-fitness
+    app: acme-fitness
+  annotations:
+    sso.apps.tanzu.vmware.com/allow-client-namespaces: '*'
+    sso.apps.tanzu.vmware.com/allow-unsafe-identity-provider: ""
+    sso.apps.tanzu.vmware.com/allow-unsafe-issuer-uri: ""
+spec:
+  tls:
+    issuerRef:
+      name: tap-ingress-selfsigned
+      kind: ClusterIssuer
+  tokenSignature:
+    signAndVerifyKeyRef:
+      name: appsso-acme-fitness-signing-key
+  identityProviders:
+  - name: dev-users
+    internalUnsafe:
+      users:
+      - username: acme
+        password: fitness
+        givenName: John
+        familyName: Doe
+        email: johndoe@example.com
+        roles:
+        - customer
+---
+apiVersion: secretgen.k14s.io/v1alpha1
+kind: RSAKey
+metadata:
+  name: appsso-acme-fitness-signing-key
+  namespace: workloads
+spec:
+  secretTemplate:
+    type: Opaque
+    stringData:
+      key.pem: $(privateKey)
+      pub.pem: $(publicKey)
+---
+apiVersion: sso.apps.tanzu.vmware.com/v1alpha1
+kind: ClientRegistration
+metadata:
+  name: acme-fitness-client-registration
+  namespace: workloads
+spec:
+  authServerSelector:
+    matchLabels:
+      name: appsso-acme-fitness
+  redirectURIs:
+  - https://acme-fitness.tap-lab.terasky.demo/login/oauth2/code/sso
+  requireUserConsent: false
+  clientAuthenticationMethod: basic
+  authorizationGrantTypes:
+  - client_credentials
+  - authorization_code
+  scopes:
+  - name: openid
+  - name: email
+  - name: profile
+  - name: roles
+  - name: messages.read
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: resource-claims-client-registration
+  labels:
+    resourceclaims.services.apps.tanzu.vmware.com/controller: "true"
+rules:
+- apiGroups:
+  - sso.apps.tanzu.vmware.com
+  resources:
+  - ClientRegistration
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: client-registration-app-operator-reader
+  labels:
+    apps.tanzu.vmware.com/aggregate-to-app-operator-cluster-access: "true"
+rules:
+- apiGroups:
+  - sso.apps.tanzu.vmware.com
+  resources:
+  - ClientRegistration
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: services.apps.tanzu.vmware.com/v1alpha1
+kind: ClusterInstanceClass
+metadata:
+  name: clientreg
+spec:
+  description:
+    short: AppSSO Client Registrations
+  pool:
+    group: sso.apps.tanzu.vmware.com
+    kind: ClientRegistration
+---
+apiVersion: services.apps.tanzu.vmware.com/v1alpha1
+kind: ResourceClaimPolicy
+metadata:
+  name: client-registration-cross-namespace
+  namespace: workloads
+spec:
+  consumingNamespaces:
+  - '*'
+  subject:
+    group: sso.apps.tanzu.vmware.com
+    kind: ClientRegistration
+---
+apiVersion: services.apps.tanzu.vmware.com/v1alpha1
+kind: ResourceClaim
+metadata:
+  name: appsso-acme-fitness
+  namespace: workloads
+spec:
+  ref:
+    apiVersion: sso.apps.tanzu.vmware.com/v1alpha1
+    kind: ClientRegistration
+    name: acme-fitness-client-registration
+    namespace: workloads

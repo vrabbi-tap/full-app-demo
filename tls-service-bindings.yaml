@@ -1,0 +1,15 @@
+apiVersion: servicebinding.io/v1beta1
+kind: ServiceBinding
+metadata:
+  name: sso-cert
+  namespace: workloads
+spec:
+  name: sso-cert
+  service:
+    apiVersion: v1
+    kind: Secret
+    name: tap-ca-cert
+  workload:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: acme-fitness-gateway

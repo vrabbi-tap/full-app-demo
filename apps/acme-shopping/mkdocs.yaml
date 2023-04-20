@@ -1,0 +1,7 @@
+site_name: 'ACME Fitness Store - Shopping Service'
+
+nav:
+  - About: index.md
+
+plugins:
+  - techdocs-core

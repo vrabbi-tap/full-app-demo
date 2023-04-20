@@ -1,0 +1,20 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: acme-shopping
+  namespace: workloads
+  description: ACME Fitness Store Shopping Service
+  tags:
+    - tanzu
+  annotations:
+    'backstage.io/kubernetes-label-selector': 'app.kubernetes.io/part-of=acme-shopping'
+    'backstage.io/techdocs-ref': dir:../.
+spec:
+  type: service
+  lifecycle: production
+  owner: default-team
+  system: fitness-store
+  dependsOn:
+  - component:workloads/acme-catalog
+  - component:workloads/acme-cart
+  - component:workloads/acme-order

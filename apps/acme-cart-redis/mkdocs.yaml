@@ -1,0 +1,7 @@
+site_name: 'ACME Fitness Store - Cart Service Redis'
+
+nav:
+  - About: index.md
+
+plugins:
+  - techdocs-core
