@@ -16,7 +16,7 @@ spec:
   type: service
   lifecycle: production
   owner: default-team
-  system: fitness-store
+  system: workloads/fitness-store
   dependsOn:
   - component:workloads/acme-cart-redis
   - component:workloads/acme-identity

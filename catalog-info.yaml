@@ -3,6 +3,7 @@ apiVersion: backstage.io/v1alpha1
 kind: System
 metadata:
   name: fitness-store
+  namespace: workloads
   description: ACME Fitness Online Store
   annotations:
     'backstage.io/techdocs-ref': dir:.
